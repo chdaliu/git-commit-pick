@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+Icon?
+
+# Shell / editor
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.code-workspace
+
+# Runtime artifacts
+git_commit_pick.config.json
+tests/fixture/
+tests/out/
