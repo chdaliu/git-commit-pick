@@ -70,9 +70,12 @@ order as the times you entered.
    or `c` to cancel. Cancelling moves every copy to the Trash and keeps the
    original. `r` retries the run: every copy is moved to the Trash, the
    original is kept, and the time entry and copy/commit steps start over.
-5. **Push.** The picked copy runs `git push` (it inherits the remote and
-   upstream from the original). On failure the run aborts: nothing is trashed
-   and the original is not renamed. `--no-push` skips this step.
+5. **Push.** The picked copy is pushed: when its current branch already has an
+   upstream it runs `git push`; when it has none but a remote exists (for
+   example an empty remote) it runs `git push -u <remote> <branch>` (the
+   remote is `origin` when present, the branch is the current one), setting
+   the upstream. On failure the run aborts: nothing is trashed and the
+   original is not renamed. `--no-push` skips this step.
 6. **Cleanup and rename.** After a confirmation menu (skipped with `--yes`),
    every other copy created by this run and the original repository are moved
    to `~/.Trash` with Finder-style collision names (`repo 2`, `repo 3`, ...),
@@ -151,9 +154,9 @@ tests/create_test_fixture.sh   # rebuild tests/fixture
 tests/run_tests.sh             # automated checks, non-zero exit on failure
 ```
 
-The suite runs 164 checks in isolated case directories with a fake `HOME`,
-including a bare `origin.git` for the push test. Nothing outside
-`tests/out` and `tests/fixture` is modified.
+The suite runs 178 checks in isolated case directories with a fake `HOME`,
+including a bare `origin.git` and an empty `origin_empty.git` for the push
+tests. Nothing outside `tests/out` and `tests/fixture` is modified.
 
 ## Known macOS behavior
 

@@ -100,9 +100,14 @@ LICENSE                     # MIT
 
 ## 7. push
 
-除非 `--no-push`/`push=false`，在选中副本执行
-`git -C "$SELECTED_PATH" push`（不重定向，让用户看到 git 输出）。失败时打印
-`push_failed` 并中止：不回收、母本不改名，exit 1。
+除非 `--no-push`/`push=false`，push 选中副本。`prepare_push_cmd` 在挑选之后运行
+（使确认界面能显示真实命令）并设置 `PUSH_ARGV`/`PUSH_CMD`：当前分支已有
+upstream（`rev-parse --abbrev-ref --symbolic-full-name '@{u}'` 非空）时为普通
+`git push`；没有 upstream 但存在 remote 时为 `git push -u <remote> <branch>`，
+remote 优先 `origin`，否则取 `git remote` 的第一项，branch 取自
+`symbolic-ref --short HEAD`（绝不硬编码）。无 remote 或 detached HEAD 保持普通
+`git push`。执行 `git -C "$SELECTED_PATH" "${PUSH_ARGV[@]}"`（不重定向，让用户
+看到 git 输出）。失败时打印 `push_failed` 并中止：不回收、母本不改名，exit 1。
 
 ## 8. 回收安全
 
@@ -134,19 +139,21 @@ Schema：`language`、`repoPath`、`times`（原始输入字符串数组）、`m
 假 `HOME`）与 `run_pick`（用该 HOME 运行脚本）。Fixture
 （`tests/create_test_fixture.sh`）：`src`（无 remote，已暂存文件 + 未跟踪
 文件）、`src_remote`（基础提交已 push 到 bare `origin.git`，remote 为
-`../origin.git` 且配置了 upstream，另有已暂存改动）、`clean`、`unstaged`、
-`nongit`、`gitfile`（`.git` 是文件）、干扰目录 `src-old`、
-`sample_config.json`。
+`../origin.git` 且配置了 upstream，另有已暂存改动）、`src_empty_remote`
+（基础提交，remote 为 `../origin_empty.git`，无 upstream，另有已暂存改动）、
+`clean`、`unstaged`、`nongit`、`gitfile`（`.git` 是文件）、干扰目录
+`src-old`、`sample_config.json`。
 
 覆盖：语法检查；消息表键完整性（grep 提取键名，eval 两个 `case` 函数，要求
 均非空）；全部校验错误；干跑零副作用；时间格式与参照日期继承；作者/提交
 epoch 与提交信息；默认提交信息（无提交的仓库用 `Initial commit`，已有历史用
 `Update`）与显式/配置指定的信息；只提交已暂存内容与未跟踪遗留；母本不变；
-交互式完整 id 与前缀挑选；序号挑选；对 bare 仓库 push 成功；push 失败中止；
+交互式完整 id 与前缀挑选；序号挑选；对 bare 仓库 push 成功；空远端 push 设置
+upstream（`git push -u origin main`）；push 失败中止；
 不匹配与非法挑选；取消（副本移入废纸篓、保留母本）；重试（副本移入废纸篓、
 时间输入重新开始、最终汇总只反映最后一次尝试）；废纸篓冲突命名；目标已存在
 预检；中文输出；配置往返；`--yes` 不写配置；全角输入；结果表完整性。结束时
-清理 `tests/out` 与 `tests/fixture`。预期结果：`PASS: 168   FAIL: 0`。
+清理 `tests/out` 与 `tests/fixture`。预期结果：`PASS: 178   FAIL: 0`。
 
 ## 11. 复现清单
 
@@ -154,7 +161,7 @@ epoch 与提交信息；默认提交信息（无提交的仓库用 `Initial comm
 2. 按第 10 节编写两个测试脚本。
 3. 为三个脚本添加可执行权限。
 4. 对所有 shell 文件执行 `bash -n`。
-5. `tests/run_tests.sh` 必须输出 `PASS: 168   FAIL: 0`。
+5. `tests/run_tests.sh` 必须输出 `PASS: 178   FAIL: 0`。
 6. `./scripts/git_commit_pick.sh --help` 必须正常渲染。
 7. 编写 `docs/README.md`、`docs/README.zh-CN.md`、`AGENTS.md`、
    `AGENTS.zh-CN.md`、`opencode.json`、`LICENSE`、`.gitignore`。

@@ -109,9 +109,17 @@ aborts with exit 1. If no copy committed successfully, exit 1.
 
 ## 7. Push
 
-Unless `--no-push`/`push=false`, run `git -C "$SELECTED_PATH" push` (no
-redirection, so the user sees git's output). On failure print `push_failed`
-and abort: nothing is trashed, the original is not renamed, exit 1.
+Unless `--no-push`/`push=false`, push the selected copy. `prepare_push_cmd`
+runs after selection (so the confirmation can show the real command) and sets
+`PUSH_ARGV`/`PUSH_CMD`: when the current branch already has an upstream
+(`rev-parse --abbrev-ref --symbolic-full-name '@{u}'` non-empty) it is plain
+`git push`; when it has none but a remote exists it is
+`git push -u <remote> <branch>`, with `origin` preferred and otherwise the
+first `git remote` entry, and the branch from `symbolic-ref --short HEAD`
+(never hard-coded). No remote or detached HEAD keeps plain `git push`. Run
+`git -C "$SELECTED_PATH" "${PUSH_ARGV[@]}"` with no redirection, so the user
+sees git's output. On failure print `push_failed` and abort: nothing is
+trashed, the original is not renamed, exit 1.
 
 ## 8. Cleanup safety
 
@@ -150,8 +158,9 @@ path is `$SAVE_DIR/git_commit_pick.config.json`, else the script root.
 script with that HOME. Fixture (`tests/create_test_fixture.sh`): `src` (no
 remote, staged files + untracked file), `src_remote` (base commit pushed to
 the bare `origin.git` with `../origin.git` as remote and an upstream branch,
-plus a staged change), `clean`, `unstaged`, `nongit`, `gitfile` (`.git` is a
-file), `src-old` decoy, `sample_config.json`.
+plus a staged change), `src_empty_remote` (base commit, `../origin_empty.git`
+as remote, no upstream, staged change), `clean`, `unstaged`, `nongit`,
+`gitfile` (`.git` is a file), `src-old` decoy, `sample_config.json`.
 
 Coverage: syntax checks; message-table key completeness (extract keys with
 grep, eval the two `case` functions, require both non-empty); every
@@ -160,13 +169,14 @@ date inheritance; author/committer epochs and subject; default message
 (`Initial commit` on an unborn repository, `Update` when history exists) and
 explicit/config messages; staged-only commit and
 untracked leftovers; source untouched; interactive full-id and prefix
-selection; index selection; push success against the bare repository; push
+selection; index selection; push success against the bare repository;
+empty-remote push setting the upstream (`git push -u origin main`); push
 failure abort; no-match and invalid selections; cancel (copies moved to the
 Trash, original kept); retry (copies moved to the Trash, time entry restarts,
 final summary reflects the last attempt); Trash collision naming; target-exists
 pre-check; Chinese output; config round-trip; `--yes` never writes config;
 full-width input; results-table integrity. Cleanup removes `tests/out` and
-`tests/fixture` at the end. Expected result: `PASS: 168   FAIL: 0`.
+`tests/fixture` at the end. Expected result: `PASS: 178   FAIL: 0`.
 
 ## 11. Reproduce checklist
 
@@ -174,7 +184,7 @@ full-width input; results-table integrity. Cleanup removes `tests/out` and
 2. Write the two test scripts per section 10.
 3. `chmod +x` all three scripts.
 4. `bash -n` every shell file.
-5. `tests/run_tests.sh` must print `PASS: 164   FAIL: 0`.
+5. `tests/run_tests.sh` must print `PASS: 178   FAIL: 0`.
 6. `./scripts/git_commit_pick.sh --help` must render.
 7. Write `docs/README.md`, `docs/README.zh-CN.md`, `AGENTS.md`,
    `AGENTS.zh-CN.md`, `opencode.json`, `LICENSE`, `.gitignore`.

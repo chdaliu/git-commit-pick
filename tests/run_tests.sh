@@ -111,6 +111,8 @@ if "$TESTS/create_test_fixture.sh" "$FIX" >/dev/null 2>&1; then ok "fixture buil
 assert_exists "fixture src" "$FIX/src"
 assert_exists "fixture src_remote" "$FIX/src_remote"
 assert_exists "fixture origin.git" "$FIX/origin.git"
+assert_exists "fixture src_empty_remote" "$FIX/src_empty_remote"
+assert_exists "fixture origin_empty.git" "$FIX/origin_empty.git"
 
 echo "== 4. --help =="
 RES="$("$SCRIPT" --help 2>&1)"
@@ -461,6 +463,24 @@ assert_eq "retry summary created" "$(sv "$RES" "Copies created")" "2"
 assert_eq "retry summary committed" "$(sv "$RES" Committed)" "2"
 assert_eq "retry summary trashed" "$(sv "$RES" Trashed)" "2"
 assert_eq "retry summary errors" "$(sv "$RES" Errors)" "0"
+
+echo "== 37. empty remote push sets upstream =="
+build_case t39
+RES="$(run_pick t39 "$OUTC/t39/src_empty_remote" --time "2026-09-20 14:30:00" --yes --select 1 2>&1)"
+RC=$?
+SHA1="$(first_committed_sha "$RES")"
+assert_eq "empty remote push exit code" "$RC" "0"
+assert_contains "empty remote push marker" "$RES" "[pushed]"
+assert_eq "empty remote bare head" "$(git -C "$OUTC/t39/origin_empty.git" rev-parse refs/heads/main)" "$SHA1"
+assert_eq "empty remote upstream set" "$(git -C "$OUTC/t39/src_empty_remote" rev-parse --abbrev-ref '@{u}')" "origin/main"
+assert_eq "empty remote summary pushed" "$(sv "$RES" Pushed)" "1"
+assert_eq "empty remote summary errors" "$(sv "$RES" Errors)" "0"
+
+build_case t40
+RES="$(printf '1\n1\n' | run_pick t40 "$OUTC/t40/src_empty_remote" --time "2026-09-20 14:30:00" 2>&1)"
+RC=$?
+assert_eq "empty remote confirm exit code" "$RC" "0"
+assert_contains "confirm shows upstream command" "$RES" "git push -u origin main"
 
 echo
 echo "PASS: $PASS   FAIL: $FAIL"

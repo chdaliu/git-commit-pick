@@ -6,11 +6,16 @@
 #                and an untracked file (unstaged.txt); no remote
 #   src_remote   repository with a base commit pushed to origin.git and an
 #                upstream branch configured, plus a staged change
+#   src_empty_remote
+#                repository with a base commit and an origin remote pointing
+#                at the empty origin_empty.git, no upstream, staged change
 #   clean        repository with a commit and no pending changes
 #   unstaged     repository with a modified tracked file, nothing staged
 #   nongit       plain directory (not a repository)
 #   gitfile      directory whose .git is a file (linked worktree shape)
 #   origin.git   bare repository used as the push target
+#   origin_empty.git
+#                empty bare repository used as an empty-remote push target
 #   src-old      decoy sibling that must never be trashed
 #   sample_config.json   example configuration
 #
@@ -98,6 +103,19 @@ git -C "$FIXTURE_DIR/src_remote" remote add origin ../origin.git
 git -C "$FIXTURE_DIR/src_remote" push -q -u origin main
 writef "$FIXTURE_DIR/src_remote/base.txt" "changed"
 git -C "$FIXTURE_DIR/src_remote" add base.txt
+
+# --- origin_empty.git + src_empty_remote ------------------------------------
+git init -q --bare "$FIXTURE_DIR/origin_empty.git"
+git -C "$FIXTURE_DIR/origin_empty.git" symbolic-ref HEAD refs/heads/main
+mk "$FIXTURE_DIR/src_empty_remote"
+git_init "$FIXTURE_DIR/src_empty_remote"
+git_ident "$FIXTURE_DIR/src_empty_remote"
+writef "$FIXTURE_DIR/src_empty_remote/base.txt" "base"
+git -C "$FIXTURE_DIR/src_empty_remote" add base.txt
+git -C "$FIXTURE_DIR/src_empty_remote" commit -q -m "base"
+git -C "$FIXTURE_DIR/src_empty_remote" remote add origin ../origin_empty.git
+writef "$FIXTURE_DIR/src_empty_remote/base.txt" "changed"
+git -C "$FIXTURE_DIR/src_empty_remote" add base.txt
 
 # --- sample config ----------------------------------------------------------
 cat > "$FIXTURE_DIR/sample_config.json" <<EOF

@@ -94,6 +94,9 @@ COPY_PATHS=()
 COPY_TIMES=()
 COPY_SHAS=()
 
+PUSH_ARGV=(push)
+PUSH_CMD="git push"
+
 SELECTED_PATH=""
 SELECTED_TIME=""
 SELECTED_SHA=""
@@ -213,14 +216,14 @@ msg_en() {
     dry_run_on)          echo "DRY-RUN: no copy, commit, push, trash or rename will be performed.";;
     dry_run_done)        echo "Dry-run finished; nothing was changed.";;
     confirm_title)       echo "About to perform:";;
-    confirm_push)        echo "push %s  (git push)";;
+    confirm_push)        echo "push %s  (%s)";;
     confirm_no_push)     echo "push: skipped (--no-push)";;
     confirm_trash)       echo "move to Trash: %s";;
     confirm_rename)      echo "rename %s -> %s";;
     confirm_menu)        echo "1) Proceed  2) Cancel";;
     confirm_prompt)      echo "Your choice";;
     cancelled)           echo "Cancelled; nothing was changed.";;
-    pushing)             echo "Pushing %s ...";;
+    pushing)             echo "Pushing %s (%s) ...";;
     pushed)              echo "[pushed]";;
     push_skip)           echo "[skipped] push (--no-push)";;
     push_failed)         echo "Push failed; aborting. No copies were trashed and the original was not renamed.";;
@@ -330,14 +333,14 @@ msg_zh() {
     dry_run_on)          echo "干跑模式：不会执行任何复制、提交、push、回收或改名。";;
     dry_run_done)        echo "干跑结束：未做任何修改。";;
     confirm_title)       echo "即将执行：";;
-    confirm_push)        echo "push %s（git push）";;
+    confirm_push)        echo "push %s（%s）";;
     confirm_no_push)     echo "push：跳过（--no-push）";;
     confirm_trash)       echo "移入废纸篓：%s";;
     confirm_rename)      echo "改名 %s -> %s";;
     confirm_menu)        echo "1) 确认  2) 取消";;
     confirm_prompt)      echo "你的选择";;
     cancelled)           echo "已取消：未做任何修改。";;
-    pushing)             echo "正在 push %s …";;
+    pushing)             echo "正在 push %s（%s）…";;
     pushed)              echo "[已推送]";;
     push_skip)           echo "[跳过] push（--no-push）";;
     push_failed)         echo "push 失败，已中止：未回收任何副本，母本也未改名。";;
@@ -910,7 +913,7 @@ confirm_destructive() {
   local i p attempts=0
   echo "$(msg confirm_title)"
   if [ "$PUSH" = "yes" ]; then
-    echo "  $(msg confirm_push "$SELECTED_PATH")"
+    echo "  $(msg confirm_push "$SELECTED_PATH" "$PUSH_CMD")"
   else
     echo "  $(msg confirm_no_push)"
   fi
@@ -939,13 +942,31 @@ confirm_destructive() {
   done
 }
 
+prepare_push_cmd() {
+  local up branch remote
+  PUSH_ARGV=(push)
+  PUSH_CMD="git push"
+  up="$(git -C "$SELECTED_PATH" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null)"
+  [ -n "$up" ] && return 0
+  branch="$(git -C "$SELECTED_PATH" symbolic-ref --short HEAD 2>/dev/null)"
+  [ -n "$branch" ] || return 0
+  if git -C "$SELECTED_PATH" config --get remote.origin.url >/dev/null 2>&1; then
+    remote="origin"
+  else
+    remote="$(git -C "$SELECTED_PATH" remote 2>/dev/null | sed -n '1p')"
+  fi
+  [ -n "$remote" ] || return 0
+  PUSH_ARGV=(push -u "$remote" "$branch")
+  PUSH_CMD="git push -u $remote $branch"
+}
+
 do_push() {
   if [ "$PUSH" != "yes" ]; then
     echo "$(msg push_skip)"
     return 0
   fi
-  echo "$(msg pushing "$SELECTED_PATH")"
-  if git -C "$SELECTED_PATH" push; then
+  echo "$(msg pushing "$SELECTED_PATH" "$PUSH_CMD")"
+  if git -C "$SELECTED_PATH" "${PUSH_ARGV[@]}"; then
     PUSHED_N=1
     echo "$(msg pushed)"
     return 0
@@ -1479,6 +1500,10 @@ main() {
     fi
     break
   done
+
+  if [ "$PUSH" = "yes" ]; then
+    prepare_push_cmd
+  fi
 
   if [ "$YES" != "yes" ]; then
     if ! confirm_destructive; then

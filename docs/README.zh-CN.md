@@ -62,8 +62,11 @@ AGENTS.zh-CN.md             # 可重现构建说明（中文）
    完整 id、唯一前缀（至少 7 位），或 `c` 取消。取消则把所有副本移入
    废纸篓、保留母本。输入 `r` 重试：把所有副本移入废纸篓、保留母本，然后
    重新输入时间并重新复制、提交。
-5. **push。** 在选中副本执行 `git push`（继承母本的 remote 与 upstream）。
-   失败即中止：不回收任何目录、母本不改名。`--no-push` 跳过此步。
+5. **push。** 在选中副本推送：当前分支已有 upstream 时执行 `git push`；
+   没有 upstream 但存在 remote（例如远端是空仓库）时执行
+   `git push -u <remote> <branch>`（remote 优先 `origin`，分支取当前分支），
+   从而建立 upstream。失败即中止：不回收任何目录、母本不改名。`--no-push`
+   跳过此步。
 6. **回收与改名。** 确认菜单（`--yes` 跳过）后，本次创建的其他所有副本与
    母本移入 `~/.Trash`（同名冲突按 Finder 规则改名为 `repo 2`、`repo 3`……），
    选中副本改名为母本原路径。
@@ -135,8 +138,9 @@ tests/create_test_fixture.sh   # 重建 tests/fixture
 tests/run_tests.sh             # 自动化检查，失败时非零退出
 ```
 
-测试在隔离目录与假 `HOME` 中执行 164 项检查，push 测试使用本地 bare
-仓库 `origin.git`。除 `tests/out` 与 `tests/fixture` 外不会修改任何内容。
+测试在隔离目录与假 `HOME` 中执行 178 项检查，push 测试使用本地 bare
+仓库 `origin.git` 与空远端 `origin_empty.git`。除 `tests/out` 与
+`tests/fixture` 外不会修改任何内容。
 
 ## macOS 已知行为
 
